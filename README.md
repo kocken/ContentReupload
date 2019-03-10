@@ -6,9 +6,9 @@ The app is multi-threaded and can manage multiple YouTube channels at once, usin
 The program uses SQL Server Express for DB storage, which is accessed by the app with Entity Framework.
 
 This app was created in form as a hobby project. It was created to run and automatically upload videos for the following YouTube channels:
-• [Twitch Gold](https://www.youtube.com/channel/UC4Ucibr5L2O9HkaygjIvyrA)
-• [Daily CSGO](https://www.youtube.com/channel/UCCdPO27psRquTjAY2EHiz6w)
-• [Daily Dota](https://www.youtube.com/channel/UC96mL-T6mAD2xR8tZi7iNug)
+* [Twitch Gold](https://www.youtube.com/channel/UC4Ucibr5L2O9HkaygjIvyrA)
+* [Daily CSGO](https://www.youtube.com/channel/UCCdPO27psRquTjAY2EHiz6w)
+* [Daily Dota](https://www.youtube.com/channel/UC96mL-T6mAD2xR8tZi7iNug)
 
 ## Simplified process
 1. [RedditLibrary] Gathers [twitch.tv](https://www.twitch.tv) gaming clip submissions from the channel's configured [subreddit](https://www.reddit.com).
