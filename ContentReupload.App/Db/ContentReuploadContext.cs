@@ -1,7 +1,7 @@
 ﻿using ContentReupload.App.Models;
 using System.Data.Entity;
 
-namespace ContentReupload.App
+namespace ContentReupload.App.Db
 {
     public class ContentReuploadContext : DbContext
     {

@@ -9,7 +9,12 @@ namespace ContentReupload.RedditLibrary
 {
     public class RedditManager
     {
-        private readonly Reddit reddit = new Reddit();
+        private readonly Reddit _reddit;
+
+        public RedditManager()
+        {
+            _reddit = new Reddit();
+        }
 
         public async Task<List<RedditSubmission>> ObtainTopAsync(string subName, string domain, TimePeriod timePeriod, 
             bool orderByPoints, bool infoMessages = true)
@@ -22,7 +27,7 @@ namespace ContentReupload.RedditLibrary
 
             try
             {
-                Subreddit sub = await reddit.GetSubredditAsync(subName);
+                Subreddit sub = await _reddit.GetSubredditAsync(subName);
 
                 Listing<Post> top = null;
 
@@ -83,7 +88,7 @@ namespace ContentReupload.RedditLibrary
         public async Task<Dictionary<string, List<RedditSubmission>>> GetSubsAsync(string domain)
         {
             Dictionary<string, List<RedditSubmission>> result = new Dictionary<string, List<RedditSubmission>>();
-            var popular = reddit.GetPopularSubreddits().ToList();
+            var popular = _reddit.GetPopularSubreddits().ToList();
             foreach(var sub in popular)
             {
                 var posts = await ObtainTopAsync(sub.Name, domain, TimePeriod.Day, false, false);

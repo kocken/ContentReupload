@@ -1,4 +1,5 @@
-﻿using ContentReupload.App.Models;
+﻿using ContentReupload.App.Db;
+using ContentReupload.App.Models;
 using ContentReupload.RedditLibrary;
 using ContentReupload.TwitchLibrary;
 using ContentReupload.Util;
@@ -22,35 +23,70 @@ namespace ContentReupload.App.Compilations
         protected abstract bool UseOutro { get; }
         protected abstract string OutroPath { get; }
 
+        private readonly Database _database;
+        private readonly RedditManager _redditManager;
+        private readonly TwitchManager _twitchManager;
+        private readonly VideoManager _videoManager;
+        private readonly YouTubeManager _youtubeManager;
+
+        public ICompilation()
+        {
+            _database = new Database();
+            _redditManager = new RedditManager();
+            _twitchManager = new TwitchManager();
+            _videoManager = new VideoManager();
+            _youtubeManager = new YouTubeManager();
+        }
 
         public async Task ManageUploadsAsync()
         {
             while (true)
             {
-                DateTime lastYearUpload = GetLastUploadDate(TimePeriod.Year);
-                DateTime lastMonthUpload = GetLastUploadDate(TimePeriod.Month);
-                DateTime lastDayUpload = GetLastUploadDate(TimePeriod.Day);
-                DateTime now = DateTime.UtcNow;
+                switch (GetCurrentCreationTask())
+                {
+                    case CreationTask.Yearly:
+                        await CreateCompilationAsync(TimePeriod.Year);
+                        break;
 
-                if (now.Month == 1 && (lastYearUpload == default || lastYearUpload.Year != now.Year))
-                {
-                    await CreateCompilationAsync(TimePeriod.Year);
-                }
-                else if (now.Day <= 5 && (now.Month != 1 || now.Hour >= 15) && (lastMonthUpload == default || lastMonthUpload.Month != now.Month))
-                {
-                    await CreateCompilationAsync(TimePeriod.Month);
-                }
-                else if (lastDayUpload == default ||
-                    now.Subtract(lastDayUpload) >= TimeSpan.FromHours(23) && now.Hour >= 19 ||
-                    now.Subtract(lastDayUpload) >= TimeSpan.FromHours(26))
-                {
-                    await CreateCompilationAsync(TimePeriod.Day);
-                }
-                else
-                {
-                    UtilMethods.Sleep(10 * 60 * 1000); // 10 minutes
+                    case CreationTask.Monthly:
+                        await CreateCompilationAsync(TimePeriod.Month);
+                        break;
+
+                    case CreationTask.Daily:
+                        await CreateCompilationAsync(TimePeriod.Day);
+                        break;
+
+                    case CreationTask.None:
+                    default:
+                        UtilMethods.Sleep(10 * 60 * 1000); // 10 minutes
+                        break;
                 }
             }
+        }
+
+        CreationTask GetCurrentCreationTask()
+        {
+            DateTime lastYearUpload = _database.GetLastUploadDate(ChannelName, TimePeriod.Year);
+            DateTime lastMonthUpload = _database.GetLastUploadDate(ChannelName, TimePeriod.Month);
+            DateTime lastDayUpload = _database.GetLastUploadDate(ChannelName, TimePeriod.Day);
+            DateTime now = DateTime.UtcNow;
+
+            if (now.Month == 1 && (lastYearUpload == default || lastYearUpload.Year != now.Year))
+            {
+                return CreationTask.Yearly;
+            }
+            else if (now.Day <= 5 && (now.Month != 1 || now.Hour >= 15) && (lastMonthUpload == default || lastMonthUpload.Month != now.Month))
+            {
+                return CreationTask.Monthly;
+            }
+            else if (lastDayUpload == default ||
+                now.Subtract(lastDayUpload) >= TimeSpan.FromHours(23) && now.Hour >= 19 ||
+                now.Subtract(lastDayUpload) >= TimeSpan.FromHours(26))
+            {
+                return CreationTask.Daily;
+            }
+
+            return CreationTask.None;
         }
 
         protected async Task<bool> CreateCompilationAsync(TimePeriod timePeriod)
@@ -59,7 +95,7 @@ namespace ContentReupload.App.Compilations
 
             DateTime start = DateTime.UtcNow;
 
-            List<RedditSubmission> redditSubmissions = await new RedditManager().
+            List<RedditSubmission> redditSubmissions = await _redditManager.
                 ObtainTopAsync(RedditSub, "clips.twitch.tv", timePeriod, timePeriod != TimePeriod.Day);
 
             if (redditSubmissions.Count == 0)
@@ -68,9 +104,6 @@ namespace ContentReupload.App.Compilations
                 return false;
             }
 
-            TwitchManager twitchManager = new TwitchManager();
-            VideoManager videoManager = new VideoManager();
-
             List<TwitchClip> twitchClips = new List<TwitchClip>();
             TimeSpan contentLength = new TimeSpan();
 
@@ -78,13 +111,13 @@ namespace ContentReupload.App.Compilations
             {
                 RedditSubmission submission = redditSubmissions.ElementAt(i);
 
-                TwitchClip clip = twitchManager.DownloadClip(submission.Title, submission.Url.AbsolutePath);
+                TwitchClip clip = _twitchManager.DownloadClip(submission.Title, submission.Url.AbsolutePath);
 
                 if (clip != null)
                 {
                     twitchClips.Add(clip);
 
-                    contentLength = contentLength.Add(videoManager.GetVideoLength(clip.LocalLocation));
+                    contentLength = contentLength.Add(_videoManager.GetVideoLength(clip.LocalLocation));
                 }
             }
 
@@ -95,7 +128,7 @@ namespace ContentReupload.App.Compilations
                 clipPaths.Add(OutroPath);
             }
 
-            string compilationPath = videoManager.CreateCompilationVideo($"{ChannelName}_" +
+            string compilationPath = _videoManager.CreateCompilationVideo($"{ChannelName}_" +
                 $"{timePeriod.ToString()}_{start.Year}-{start.Month}-{start.Day}-{start.Hour}", clipPaths);
 
             BuildVideoDetails(timePeriod, compilationPath, OutroPath, twitchClips, contentLength,
@@ -103,7 +136,7 @@ namespace ContentReupload.App.Compilations
 
             RemoveClips(twitchClips);
 
-            new YouTubeManager().UploadVideoAsync(ChannelName, title, description, youtubeTags.ToArray(), compilationPath).Wait();
+            _youtubeManager.UploadVideoAsync(ChannelName, title, description, youtubeTags.ToArray(), compilationPath).Wait();
 
             Console.WriteLine("Deleting compilation video from local disk and storing creation-entry in DB");
             try
@@ -114,7 +147,7 @@ namespace ContentReupload.App.Compilations
             {
                 Console.WriteLine(e);
             }
-            StoreUploadEntryToDb(title, timePeriod, start);
+            _database.StoreUploadEntry(ChannelName, title, timePeriod, start);
 
             Console.WriteLine($"Finished proccess: Created and uploaded twitch " +
                 $"{timePeriod.ToString().ToLower()} compilation '{title}' at {start.ToString()}");
@@ -157,7 +190,7 @@ namespace ContentReupload.App.Compilations
 
                 case TimePeriod.Day:
                 default:
-                    title += " #" + (GetUploadsCount(timePeriod) + 1);
+                    title += " #" + (_database.GetUploadsCount(ChannelName, timePeriod) + 1);
                     break;
             }
 
@@ -170,12 +203,10 @@ namespace ContentReupload.App.Compilations
 
         protected string GetDescription(List<TwitchClip> twitchClips, TimeSpan contentLength, string compilationPath, string title)
         {
-            VideoManager videoManager = new VideoManager();
-
-            TimeSpan compilationLength = videoManager.GetVideoLength(compilationPath);
+            TimeSpan compilationLength = _videoManager.GetVideoLength(compilationPath);
             // time difference (in seconds) between the actual content length and the invalid contentLength
             double timeDifference = compilationLength
-                .Subtract(UseOutro ? videoManager.GetVideoLength(OutroPath) : new TimeSpan())
+                .Subtract(UseOutro ? _videoManager.GetVideoLength(OutroPath) : new TimeSpan())
                 .Subtract(contentLength).TotalSeconds;
 
             double timeDifferencePerVideo = timeDifference / twitchClips.Count;
@@ -190,7 +221,7 @@ namespace ContentReupload.App.Compilations
             {
                 //youtubeTags.Add(clip.Channel);
                 description += $"{Environment.NewLine}{contentLength.Minutes}:{contentLength.Seconds.ToString("00")} - ";
-                contentLength = contentLength.Add(videoManager.GetVideoLength(clip.LocalLocation));
+                contentLength = contentLength.Add(_videoManager.GetVideoLength(clip.LocalLocation));
                 currentTimeDifference += timeDifferencePerVideo;
                 int roundedDiff = Convert.ToInt32(currentTimeDifference);
                 if (roundedDiff != secondsCompensated)
@@ -222,48 +253,10 @@ namespace ContentReupload.App.Compilations
 
             Console.WriteLine("Finished deleting used clips from local disk");
         }
+    }
 
-        protected void StoreUploadEntryToDb(string title, TimePeriod timePeriod, DateTime date)
-        {
-            using (var db = new ContentReuploadContext())
-            {
-                db.YoutubeUploads.Add(new YoutubeUpload
-                {
-                    Channel = ChannelName,
-                    Title = title,
-                    TimePeriod = timePeriod.ToString(),
-                    Date = date
-                });
-                db.SaveChanges();
-            }
-        }
-
-        protected DateTime GetLastUploadDate(TimePeriod timePeriod)
-        {
-            using (var db = new ContentReuploadContext())
-            {
-                var lastUpload = db.YoutubeUploads.ToList().LastOrDefault
-                    (x => x.Channel == ChannelName && x.TimePeriod == timePeriod.ToString());
-                if (lastUpload != null)
-                {
-                    return lastUpload.Date;
-                }
-            }
-            return new DateTime();
-        }
-
-        protected int GetUploadsCount(TimePeriod timePeriod)
-        {
-            using (var db = new ContentReuploadContext())
-            {
-                var uploads = db.YoutubeUploads.ToList().Where
-                    (x => x.Channel == ChannelName && x.TimePeriod == timePeriod.ToString());
-                if (uploads != null)
-                {
-                    return uploads.Count();
-                }
-            }
-            return 0;
-        }
+    enum CreationTask
+    {
+        Yearly, Monthly, Daily, None
     }
 }

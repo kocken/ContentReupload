@@ -13,7 +13,12 @@ namespace ContentReupload.TwitchLibrary
 {
     public class TwitchManager
     {
-        private VideoManager videoManager = new VideoManager();
+        private readonly VideoManager _videoManager;
+
+        public TwitchManager()
+        {
+            _videoManager = new VideoManager();
+        }
 
         public TwitchClip DownloadClip(string title, string clipPath)
         {
@@ -75,7 +80,7 @@ namespace ContentReupload.TwitchLibrary
                         Directory.CreateDirectory(downloadLocation);
                     }
 
-                    downloadLocation += "/" + videoManager.ValidateFileName(title) + "_" + DateTimeOffset.UtcNow.ToUnixTimeSeconds() + ".mp4";
+                    downloadLocation += "/" + _videoManager.ValidateFileName(title) + "_" + DateTimeOffset.UtcNow.ToUnixTimeSeconds() + ".mp4";
 
                     client.DownloadFile(link, downloadLocation);
 

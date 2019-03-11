@@ -69,9 +69,10 @@
   <ItemGroup>
     <Compile Include="Compilations\Dota2Compilation.cs" />
     <Compile Include="Compilations\GTARPCompilation.cs" />
-    <Compile Include="ContentReuploadContext.cs" />
+    <Compile Include="Db\ContentReuploadContext.cs" />
     <Compile Include="Compilations\CSGOCompilation.cs" />
     <Compile Include="Compilations\ICompilation.cs" />
+    <Compile Include="Db\Database.cs" />
     <Compile Include="Models\YoutubeUpload.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
