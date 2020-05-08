@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy $(SolutionDir)\ContentReupload.Twitch\bin\$(Configuration)\chromedriver.exe $(TargetDir)" />
+  </Target>
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -12,6 +15,9 @@
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <LangVersion>7.1</LangVersion>
+    <TargetFrameworkProfile />
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -24,11 +30,8 @@
     <MapFileExtensions>true</MapFileExtensions>
     <ApplicationRevision>0</ApplicationRevision>
     <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
-    <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <LangVersion>7.1</LangVersion>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -67,42 +70,20 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Compilations\Dota2Compilation.cs" />
-    <Compile Include="Compilations\GTARPCompilation.cs" />
+    <Compile Include="Channels\DailyDotaChannel.cs" />
+    <Compile Include="Channels\DailyRPChannel.cs" />
     <Compile Include="Db\ContentReuploadContext.cs" />
-    <Compile Include="Compilations\CSGOCompilation.cs" />
-    <Compile Include="Compilations\ICompilation.cs" />
-    <Compile Include="Db\Database.cs" />
+    <Compile Include="Channels\DailyCSGOChannel.cs" />
+    <Compile Include="Channels\Channel.cs" />
+    <Compile Include="Db\DatabaseUtil.cs" />
     <Compile Include="Models\YoutubeUpload.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Compilations\GeneralTwitchCompilation.cs" />
+    <Compile Include="Channels\TwitchGoldChannel.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ContentReupload.RedditLibrary\ContentReupload.RedditLibrary.csproj">
-      <Project>{53ADADE9-5158-4016-AF77-3BC2BF75FF61}</Project>
-      <Name>ContentReupload.RedditLibrary</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ContentReupload.TwitchLibrary\ContentReupload.TwitchLibrary.csproj">
-      <Project>{B031651D-DE54-46CD-9084-C638817DB344}</Project>
-      <Name>ContentReupload.TwitchLibrary</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ContentReupload.Util\ContentReupload.Util.csproj">
-      <Project>{8401F2B4-BB99-486A-8E8C-734867F0B4DE}</Project>
-      <Name>ContentReupload.Util</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ContentReupload.VideoLibrary\ContentReupload.VideoLibrary.csproj">
-      <Project>{CC684260-C955-4C8C-B77F-C160626D9489}</Project>
-      <Name>ContentReupload.VideoLibrary</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ContentReupload.YouTubeLibrary\ContentReupload.YouTubeLibrary.csproj">
-      <Project>{51461959-E665-4DAD-8BC5-6B79118AF59D}</Project>
-      <Name>ContentReupload.YouTubeLibrary</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
@@ -115,6 +96,33 @@
       <ProductName>.NET Framework 3.5 SP1</ProductName>
       <Install>false</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ContentReupload.Common\ContentReupload.Common.csproj">
+      <Project>{8401F2B4-BB99-486A-8E8C-734867F0B4DE}</Project>
+      <Name>ContentReupload.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ContentReupload.Reddit\ContentReupload.Reddit.csproj">
+      <Project>{53ADADE9-5158-4016-AF77-3BC2BF75FF61}</Project>
+      <Name>ContentReupload.Reddit</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ContentReupload.Twitch\ContentReupload.Twitch.csproj">
+      <Project>{B031651D-DE54-46CD-9084-C638817DB344}</Project>
+      <Name>ContentReupload.Twitch</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ContentReupload.VideoManagement\ContentReupload.VideoManagement.csproj">
+      <Project>{CC684260-C955-4C8C-B77F-C160626D9489}</Project>
+      <Name>ContentReupload.VideoManagement</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ContentReupload.YouTube\ContentReupload.YouTube.csproj">
+      <Project>{51461959-E665-4DAD-8BC5-6B79118AF59D}</Project>
+      <Name>ContentReupload.YouTube</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

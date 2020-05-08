@@ -1,6 +1,8 @@
-﻿using ContentReupload.App.Compilations;
+﻿using ContentReupload.App.Channels;
+using ContentReupload.Common;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ContentReupload.App
 {
@@ -8,16 +10,21 @@ namespace ContentReupload.App
     {
         static void Main(string[] args)
         {
-            ICompilation[] compilationManagers = new ICompilation[] {
-                new GeneralTwitchCompilation(),
-                new CSGOCompilation(),
-                new Dota2Compilation(),
-                //new GTARPCompilation() // not enough clips
+            var mainFolder = FileUtil.GetDocumentsPath() + "/ContentReupload";
+
+            var clipsFolder = mainFolder + "/Clips";
+            var compilationsFolder = mainFolder + "/Compilations";
+
+            Channel[] channels = new Channel[] {
+                new TwitchGoldChannel(clipsFolder, compilationsFolder),
+                new DailyCSGOChannel(clipsFolder, compilationsFolder),
+                new DailyDotaChannel(clipsFolder, compilationsFolder),
+                //new DailyRPChannel(clipsFolder, compilationsFolder) // not enough clips
             };
 
-            foreach (ICompilation c in compilationManagers)
+            foreach (Channel channel in channels)
             {
-                Thread thread = new Thread(() => c.ManageUploadsAsync().Wait());
+                Thread thread = new Thread(() => channel.RunAsync().Wait());
                 thread.Start();
             }
         }

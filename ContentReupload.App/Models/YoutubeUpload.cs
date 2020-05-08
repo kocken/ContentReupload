@@ -7,7 +7,6 @@ namespace ContentReupload.App.Models
     {
         [Key]
         public int Id { get; set; }
-
         public string Channel { get; set; }
         public string Title { get; set; }
         public string TimePeriod { get; set; }
